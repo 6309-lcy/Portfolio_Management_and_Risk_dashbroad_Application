@@ -4,11 +4,11 @@ import numpy as np
 import streamlit as st
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-import scipy.stats as stats  # For VaR/CVaR, beta
+import scipy.stats as stats 
 import plotly.graph_objects as go
-import plotly.express as px  # For heatmaps, histograms
-import scipy.optimize as sco  # For optimization
-import seaborn as sns  # Optional for heatmaps if needed, but using plotly
+import plotly.express as px  
+import scipy.optimize as sco  
+import seaborn as sns  
 import datetime 
 
 st.set_page_config(layout="wide")
@@ -34,7 +34,7 @@ def fetch_historical_data(tickers, starts, ends, intervals):
 @st.cache_data(ttl=300)
 def fetch_rf_data(starts, ends, intervals):
     try:
-        rf_data = yf.download(rf_ticker, start=starts, end=ends, interval=intervals)['Close'] / 100  # Yield as decimal
+        rf_data = yf.download(rf_ticker, start=starts, end=ends, interval=intervals)['Close'] / 100  
         rf_mean = rf_data.mean()  # Annual rf (yield is annual)
     except:
         rf_data = yf.download('BND', start=starts, end=ends, interval=intervals)['Close']
@@ -86,11 +86,11 @@ if search_query:
     except Exception as e:
         st.error(f"Error fetching data for {search_query}: {str(e)}")
 
-# Define tickers early for reuse
+
 tickers = list(st.session_state.portfolio.keys())
 num_assets = len(tickers)
 
-annual_rf = fetch_rf_data(starts, ends, intervals)  # Annualized risk-free rate
+annual_rf = fetch_rf_data(starts, ends, intervals)  # Annualized
 
 # Fetch market data once for betas, SML, etc.
 market_ticker = '^GSPC'
@@ -109,7 +109,7 @@ if st.session_state.portfolio:
     # Add average annual return
     historical_data = fetch_historical_data(tickers, starts, ends, intervals)
     returns_df = historical_data.pct_change().dropna()  # Daily returns
-    avg_annual = returns_df.mean() * periods_per_year * 100  # Annualized %
+    avg_annual = returns_df.mean() * periods_per_year * 100  # Annualized
     portfolio_df['Average Annual Return (%)'] = [avg_annual.get(t, np.nan) for t in tickers]
 
     col1, col2 = st.columns(2)
@@ -135,7 +135,7 @@ if st.session_state.portfolio:
             'Return ($)': '${:,.2f}',
             'Return (%)': '{:,.2f}%',
             'Average Annual Return (%)': '{:,.2f}%'
-        }), height=800)  # Wider row height (taller for readability)
+        }), height=800)  
 
         # Add export
         csv = portfolio_df.to_csv(index=False).encode('utf-8')
@@ -169,7 +169,7 @@ if st.session_state.portfolio:
     port_return = (total_current - total_invested) / total_invested if total_invested > 0 else 0
     st.markdown(f"**Since-Purchase Return:** {port_return:.2%} (Total Gain/Loss: ${total_current - total_invested:,.2f})")
 
-    # Compute risk metrics (using daily data)
+    #risk metrics (using daily data)
     historical_data = fetch_historical_data(tickers, starts, ends, intervals)
     if not historical_data.empty and len(historical_data) > 252:  # At least 1 year data
         returns_df = historical_data.pct_change().dropna()
@@ -180,18 +180,18 @@ if st.session_state.portfolio:
             if total_value > 0:
                 weights = np.array(current_values / total_value)
                 cov_matrix = returns_df.cov() * periods_per_year  # Annualized cov
-                port_vol = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights)))  # Annualized vol
-                port_mean = np.dot(returns_df.mean() * periods_per_year, weights)  # Annualized mean
+                port_vol = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights)))  # Annualized 
+                port_mean = np.dot(returns_df.mean() * periods_per_year, weights)  # Annualized 
                 port_hist_returns = returns_df.dot(weights)
-                port_var_hist = np.percentile(port_hist_returns, 5) * np.sqrt(periods_per_year)  # Approx annualized VaR
+                port_var_hist = np.percentile(port_hist_returns, 5) * np.sqrt(periods_per_year)  # Approx 
                 port_cvar_hist = port_hist_returns[port_hist_returns <= np.percentile(port_hist_returns, 5)].mean() * np.sqrt(periods_per_year) if len(port_hist_returns) > 0 else np.nan
                 port_sharpe = (port_mean - annual_rf.item()) / port_vol if port_vol > 0 else np.nan
 
-                # Add betas
+                # betas
                 betas = []
                 for t in tickers:
                     stock_returns = returns_df[t].reindex(market_returns.index).ffill().dropna()
-                    aligned_market = market_returns.reindex(stock_returns.index).squeeze()  # Ensure aligned_market is a Series (1D) to match dimensions properly
+                    aligned_market = market_returns.reindex(stock_returns.index).squeeze()  
                     if len(stock_returns) > 1:
                         beta = np.cov(stock_returns, aligned_market)[0,1] / np.var(aligned_market)
                         betas.append(beta)
@@ -300,7 +300,7 @@ if st.session_state.portfolio:
                     # Portfolio mean for use
                     port_mean = np.dot(returns_df.mean() * periods_per_year, weights)
 
-                    # Individual Stock Metrics (with beta)
+                    # Individual Stock Metrics 
                     st.subheader("Return and Risk Metrics for Each Stock")
                     risk_data = []
                     for i, ticker in enumerate(tickers):
@@ -337,8 +337,7 @@ if st.session_state.portfolio:
                     fig_corr = px.imshow(corr_matrix.values, x=tickers, y=tickers, text_auto='.2f', color_continuous_scale='RdBu_r')
                     fig_corr.update_layout(title="Correlation Matrix (Red=High, Blue=Low/Negative)")
                     st.plotly_chart(fig_corr)
-                    st.markdown("(Why? High correlations mean stocks move together, reducing diversification benefits; aim for low/negative for better risk spread.)")
-
+                   
                     # Portfolio Risk Metrics
                     st.subheader("Portfolio Risk Metrics")
                     cov_matrix_monthly = returns_df.cov()
@@ -346,7 +345,7 @@ if st.session_state.portfolio:
                     port_vol_monthly = np.sqrt(np.dot(weights.T, np.dot(cov_matrix_monthly, weights)))
                     port_vol = port_vol_monthly * np.sqrt(periods_per_year)
                     port_mean_monthly = np.mean(returns_df.dot(weights))
-                    port_mean = port_mean_monthly * periods_per_year  # Decimal for VaR calculations
+                    port_mean = port_mean_monthly * periods_per_year
                     z = stats.norm.ppf(0.95)
                     port_var_param_monthly = port_mean_monthly - z * port_vol_monthly
                     port_var_param = port_var_param_monthly * np.sqrt(periods_per_year)
@@ -618,7 +617,7 @@ if st.session_state.portfolio and len(tickers) >= 2:
     st.markdown(f"**Current Portfolio Sharpe Ratio:** {current_sharpe:.2f}" if not np.isnan(current_sharpe) else "**Current Portfolio Sharpe Ratio:** N/A (Insufficient data)")
     st.markdown(f"**Optimized Max Sharpe Ratio:** {opt_sharpe_ratio:.2f}" if not np.isnan(opt_sharpe_ratio) else "**Optimized Max Sharpe Ratio:** N/A")
     st.markdown(f"**Market Sharpe Ratio:** {market_sharpe:.2f}" if not np.isnan(market_sharpe) else "**Market Sharpe Ratio:** N/A (Insufficient market data)")
-# New Section: Custom Complete Portfolio based on MPT
+# 7 Section: Custom Complete Portfolio based on MPT
 if st.session_state.portfolio and len(tickers) >= 2:
     st.header("Custom Complete Portfolio (Modern Portfolio Theory)")
     st.markdown("""
@@ -764,4 +763,5 @@ if st.session_state.portfolio and len(tickers) >= 2:
 
 # Refresh Button
 if st.button("Refresh Data (Update Prices & Graphs)"):
+
     st.rerun()
