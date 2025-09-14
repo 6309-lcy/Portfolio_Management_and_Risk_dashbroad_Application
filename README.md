@@ -2,6 +2,8 @@
 This Portfolio Management and Risk Dashbroad Application is a comprehensive web-based tool for managing stock portfolios, analyzing performance, assessing risks, optimizing allocations, and simulating scenarios. Built with Streamlit for the user interface and yfinance for financial data retrieval, it supports daily data intervals and historical analysis from 2015 onward. The application incorporates Modern Portfolio Theory (MPT) to compute metrics such as Sharpe ratio, beta, Value at Risk (VaR), and Conditional Value at Risk (CVaR).
 This project is designed for educational and personal use. It assumes a default starting balance of $100,000 USD and fetches data from Yahoo Finance. **Note that this is not financial advice; consult a professional for investment decisions.**
 
+[click this for a try!]()
+
 ---
 ## Features
 - **Performance Tracking**: View current values, returns, and allocation visualizations via pie charts.
@@ -32,4 +34,5 @@ This project is designed for educational and personal use. It assumes a default 
 ## Future development
 - Integrate with others models to build up a portfolio management system
 - Deploy this system for 2025 bloomberg trading challenge
+- Deploy this on aws ec2 server and connect with database allowing multi user editing
 - Study and develop further for my research topic in "Event-based Automatic Portfolio Investment Strategies using Multi-modal Large Language Models"
