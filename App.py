@@ -239,14 +239,14 @@ if st.session_state.portfolio:
                     if len(stock_prices) > 1:
                         stock_returns = stock_prices.pct_change().dropna()
                         stock_cum_returns = (1 + stock_returns).cumprod() - 1
-                        plt.plot(stock_prices.index, stock_cum_returns * 100, color=colors[i], label=ticker)
+                        plt.plot(stock_cum_returns.index, stock_cum_returns * 100, color=colors[i], label=ticker)
                 current_values = portfolio_df['Current Value'].values
                 total_current_value = sum(current_values)
                 if total_current_value > 0:
                     weights = [current_values[i] / total_current_value for i in range(len(current_values))]
                     port_hist_daily_returns = (hist_returns_joint * weights).sum(axis=1)
                     port_hist_cum_returns = (1 + port_hist_daily_returns).cumprod() - 1
-                    plt.plot(historical_data.index, port_hist_cum_returns * 100, 'g--', linewidth=2.5, label='Portfolio (Weighted)')
+                    plt.plot(port_hist_cum_returns.index, port_hist_cum_returns * 100, 'g--', linewidth=2.5, label='Portfolio (Weighted)')
                 plt.xlabel("Time", fontsize=14)
                 plt.ylabel("Cumulative Return (%)", fontsize=14)
                 plt.legend(fontsize=14, loc='upper left')
