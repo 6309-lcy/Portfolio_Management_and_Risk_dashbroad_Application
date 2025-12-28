@@ -27,7 +27,13 @@ def fetch_historical_data(tickers, starts, ends, intervals):
     if not tickers:
         return pd.DataFrame()
     data = yf.download(tickers, start=starts, end=ends, interval=intervals)
-    close = data.xs('Close', level=0, axis=1)
+    if isinstance(data.columns, pd.MultiIndex):
+        close = data['Close']
+    else:
+        close = data[['Close']].rename(columns={'Close': tickers[0]} if len(tickers)== 1 else pd.DataFrame())
+    for t in tickers:
+        if t not in close.columns:
+            close[t] = np.nan
     return close[tickers]  # Order as in tickers
 
 # Fetch risk-free rate (try Treasury, fallback BND mean monthly return)
@@ -224,18 +230,21 @@ if st.session_state.portfolio:
     if st.checkbox("Show Historical Cumulative Returns (Each Stock and Portfolio)"):
         st.info("This backtests your current weights historically for risk insights—not actual performance.")
         if not historical_data.empty:
-            hist_returns = historical_data.pct_change().dropna()
-            if not hist_returns.empty:
+            hist_returns_joint = historical_data.pct_change().dropna(how='any')
+            if not hist_returns_joint.empty:
                 fig_merged = plt.figure(figsize=(15, 7), dpi=100)
                 colors = plt.cm.tab10(np.linspace(0, 1, num_assets))
                 for i, ticker in enumerate(tickers):
-                    stock_cum_returns = (1 + hist_returns[ticker]).cumprod() - 1
-                    plt.plot(historical_data.index[1:], stock_cum_returns * 100, color=colors[i], label=ticker)
+                    stock_prices = historical_data[ticker].dropna()
+                    if len(stock_prices) > 1:
+                        stock_returns = stock_prices.pct_change().dropna()
+                        stock_cum_returns = (1 + stock_returns).cumprod() - 1
+                        plt.plot(historical_data.index[1:], stock_cum_returns * 100, color=colors[i], label=ticker)
                 current_values = portfolio_df['Current Value'].values
                 total_current_value = sum(current_values)
                 if total_current_value > 0:
                     weights = [current_values[i] / total_current_value for i in range(len(current_values))]
-                    port_hist_daily_returns = (hist_returns * weights).sum(axis=1)
+                    port_hist_daily_returns = (hist_returns_joint * weights).sum(axis=1)
                     port_hist_cum_returns = (1 + port_hist_daily_returns).cumprod() - 1
                     plt.plot(historical_data.index[1:], port_hist_cum_returns * 100, 'g--', linewidth=2.5, label='Portfolio (Weighted)')
                 plt.xlabel("Time", fontsize=14)
@@ -386,10 +395,10 @@ if st.session_state.portfolio:
                     port_cum_returns = (1 + port_hist_returns_monthly).cumprod() - 1  # Cumulative is total, no need to annualize
                     if not port_cum_returns.empty:
                         fig_risk_band = plt.figure(figsize=(15, 7), dpi=100)
-                        plt.plot(historical_data.index[1:], port_cum_returns * 100, 'b', label='Historical Portfolio Return')
+                        plt.plot(returns_df.index[1:], port_cum_returns * 100, 'b', label='Historical Portfolio Return')
                         upper = np.full(len(port_cum_returns), 100 * (1 + port_var_hist))
                         lower = np.full(len(port_cum_returns), 100 * (1 + port_var_hist * -1))
-                        plt.fill_between(historical_data.index[1:], lower, upper, color='red', alpha=0.2, label='Annualized VaR Risk Band')
+                        plt.fill_between(returns_df.index[1:], lower, upper, color='red', alpha=0.2, label='Annualized VaR Risk Band')
                         plt.xlabel("Time", fontsize=14)
                         plt.ylabel("Cumulative Return (%)", fontsize=14)
                         plt.legend(fontsize=14)
@@ -432,10 +441,20 @@ if st.session_state.portfolio:
     selected_stress = st.selectbox("Select Stress Event", list(stress_periods.keys()))
     if selected_stress:
         start_s, end_s = stress_periods[selected_stress]
-        stress_data = yf.download(tickers, start=start_s, end=end_s, interval=intervals)['Close']
-        stress_returns = stress_data.pct_change().dropna()
+        stress_data_raw = yf.download(tickers, start=start_s, end=end_s, interval=intervals)['Close']
+        if isinstance(stress_data_raw.columns,pd.MultiIndex):
+            stress_data = stress_data_raw['Close']
+        else:
+            stress_data = pd.DataFrame()
+        valid_tickers = [t for t in tickers if t in stress_data.columns and stress_data[t].dropna().shape[0]>1]
+        if valid_tickers:
+            stress_data = stress_data[valid_tickers]
+            stress_returns = stress_data.pct_change().dropna(how='any')
         if not stress_returns.empty and 'weights' in locals():
-            stress_port_return = np.dot(stress_returns.mean(), weights) * len(stress_returns)  # Total return over period
+            valid_indices = [tickers.index(t) for t in valid_tickers]
+            valid_weights = np.array([weights[i] for i in valid_indices])
+            valid_weights /= valid_weights.sum() if valid_weights.sum()>0 else 1
+            stress_port_return = np.dot(stress_returns.mean(), valid_weights) * len(stress_returns)  # Total return over period
             st.markdown(f"Estimated Portfolio Return During {selected_stress}: {stress_port_return:.2%} (Applied current weights to historical returns). (Plain English: This simulates how your portfolio would have performed during past crises using today's allocation.)")
         else:
             st.warning("Insufficient data for stress test.")
