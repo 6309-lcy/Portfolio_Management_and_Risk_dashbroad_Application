@@ -395,7 +395,7 @@ if st.session_state.portfolio:
                     port_cum_returns = (1 + port_hist_returns_monthly).cumprod() - 1  # Cumulative is total, no need to annualize
                     if not port_cum_returns.empty:
                         fig_risk_band = plt.figure(figsize=(15, 7), dpi=100)
-                        plt.plot(returns_df.index[1:], port_cum_returns * 100, 'b', label='Historical Portfolio Return')
+                        plt.plot(returns_df.index, port_cum_returns * 100, 'b', label='Historical Portfolio Return')
                         upper = np.full(len(port_cum_returns), 100 * (1 + port_var_hist))
                         lower = np.full(len(port_cum_returns), 100 * (1 + port_var_hist * -1))
                         plt.fill_between(returns_df.index[1:], lower, upper, color='red', alpha=0.2, label='Annualized VaR Risk Band')
@@ -450,14 +450,14 @@ if st.session_state.portfolio:
         if valid_tickers:
             stress_data = stress_data[valid_tickers]
             stress_returns = stress_data.pct_change().dropna(how='any')
-        if not stress_returns.empty and 'weights' in locals():
-            valid_indices = [tickers.index(t) for t in valid_tickers]
-            valid_weights = np.array([weights[i] for i in valid_indices])
-            valid_weights /= valid_weights.sum() if valid_weights.sum()>0 else 1
-            stress_port_return = np.dot(stress_returns.mean(), valid_weights) * len(stress_returns)  # Total return over period
-            st.markdown(f"Estimated Portfolio Return During {selected_stress}: {stress_port_return:.2%} (Applied current weights to historical returns). (Plain English: This simulates how your portfolio would have performed during past crises using today's allocation.)")
-        else:
-            st.warning("Insufficient data for stress test.")
+            if not stress_returns.empty and 'weights' in locals():
+                valid_indices = [tickers.index(t) for t in valid_tickers]
+                valid_weights = np.array([weights[i] for i in valid_indices])
+                valid_weights /= valid_weights.sum() if valid_weights.sum()>0 else 1
+                stress_port_return = np.dot(stress_returns.mean(), valid_weights) * len(stress_returns)  # Total return over period
+                st.markdown(f"Estimated Portfolio Return During {selected_stress}: {stress_port_return:.2%} (Applied current weights to historical returns). (Plain English: This simulates how your portfolio would have performed during past crises using today's allocation.)")
+            else:
+                st.warning("Insufficient data for stress test.")
 
 # Section: Monte Carlo Simulation
 if st.session_state.portfolio and st.checkbox("Run Monte Carlo Simulation (Future Projections)"):
