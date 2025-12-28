@@ -447,10 +447,10 @@ if st.session_state.portfolio:
                 data = yf.download(t, start=start_s, end=end_s, interval=intervals)
                 if not data.empty:
                     close_series = data['Close']
-                    if isinstance(close_series, pd.Series):
-                        stress_data[t] = close_series
-                    else:
-                        st.warning(f"Unexpected data format for {t} in {selected_stress}. Skipping.")
+                    
+                    stress_data[t] = close_series
+                    # else:
+                    #     st.warning(f"Unexpected data format for {t} in {selected_stress}. Skipping.")
                 else:
                     st.warning(f"No data for {t} in {selected_stress}. Skipping.")
             except Exception as e:
