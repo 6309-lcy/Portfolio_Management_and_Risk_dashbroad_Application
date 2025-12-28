@@ -466,6 +466,8 @@ if st.session_state.portfolio:
                 st.markdown(f"Estimated Portfolio Return During {selected_stress}: {stress_port_return:.2%} (Applied current weights to historical returns). (Plain English: This simulates how your portfolio would have performed during past crises using today's allocation.)")
             else:
                 st.warning("Insufficient data for stress test.")
+        else:
+            st.warning(f"No stocks in your portfolio had data during {selected_stress} (e.g., listed after that period). Cannot compute.")
 
 # Section: Monte Carlo Simulation
 if st.session_state.portfolio and st.checkbox("Run Monte Carlo Simulation (Future Projections)"):
