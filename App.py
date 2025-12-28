@@ -441,11 +441,19 @@ if st.session_state.portfolio:
     selected_stress = st.selectbox("Select Stress Event", list(stress_periods.keys()))
     if selected_stress:
         start_s, end_s = stress_periods[selected_stress]
-        stress_data_raw = yf.download(tickers, start=start_s, end=end_s, interval=intervals)['Close']
-        if isinstance(stress_data_raw.columns,pd.MultiIndex):
-            stress_data = stress_data_raw['Close']
-        else:
-            stress_data = pd.DataFrame()
+        stress_data = pd.DataFrame()
+        for t in tickers:
+            try:
+                data = yf.download(tickers, start_s, ends, intervals)['Close']
+                if not data.empty:
+                    stress_data[t] = data
+            except Exception as e:
+                st.warning(f"Could not fetch data for {t} in {selected_stress}: {str(e)}. Skipping")
+        # stress_data_raw = yf.download(tickers, start=start_s, end=end_s, interval=intervals)['Close']
+        # if isinstance(stress_data_raw.columns,pd.MultiIndex):
+        #     stress_data = stress_data_raw['Close']
+        # else:
+        #     stress_data = pd.DataFrame()
         valid_tickers = [t for t in tickers if t in stress_data.columns and stress_data[t].dropna().shape[0]>1]
         if valid_tickers:
             stress_data = stress_data[valid_tickers]
