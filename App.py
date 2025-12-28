@@ -17,7 +17,7 @@ st.set_page_config(layout="wide")
 intervals = '1d'  # Changed to daily for better predictions/betas (resample to monthly where needed)
 periods_per_year = 252  # Trading days for annualization (more accurate)
 rf_ticker = '^TNX'  # 10-year Treasury yield (risk-free proxy); fallback to BND if fails
-starts = '2015-01-01'  # Start date for historical data
+starts = '2005-01-01'  # Start date for historical data
 ends = datetime.date.today()  # End date as current day
 num_assets = 0  # Will be set based on number of stocks in portfolio
 
