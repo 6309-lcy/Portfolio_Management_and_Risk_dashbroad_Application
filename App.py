@@ -444,9 +444,15 @@ if st.session_state.portfolio:
         stress_data = pd.DataFrame()
         for t in tickers:
             try:
-                data = yf.download(tickers, start_s, ends, intervals)['Close']
+                data = yf.download(t, start=start_s, end=end_s, interval=intervals)
                 if not data.empty:
-                    stress_data[t] = data
+                    close_series = data['Close']
+                    if isinstance(close_series, pd.Series):
+                        stress_data = pd.concat([stress_data, close_series.rename(t)], axis=1)
+                    else:
+                        st.warning(f"Unexpected data format for {t} in {selected_stress}. Skipping.")
+                else:
+                    st.warning(f"No data for {t} in {selected_stress}. Skipping.")
             except Exception as e:
                 st.warning(f"Could not fetch data for {t} in {selected_stress}: {str(e)}. Skipping")
         # stress_data_raw = yf.download(tickers, start=start_s, end=end_s, interval=intervals)['Close']
