@@ -448,7 +448,7 @@ if st.session_state.portfolio:
                 if not data.empty:
                     close_series = data['Close']
                     if isinstance(close_series, pd.Series):
-                        stress_data = pd.concat([stress_data, close_series.rename(t)], axis=1)
+                        stress_data[t] = close_series
                     else:
                         st.warning(f"Unexpected data format for {t} in {selected_stress}. Skipping.")
                 else:
