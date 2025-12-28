@@ -398,7 +398,7 @@ if st.session_state.portfolio:
                         plt.plot(returns_df.index, port_cum_returns * 100, 'b', label='Historical Portfolio Return')
                         upper = np.full(len(port_cum_returns), 100 * (1 + port_var_hist))
                         lower = np.full(len(port_cum_returns), 100 * (1 + port_var_hist * -1))
-                        plt.fill_between(returns_df.index[1:], lower, upper, color='red', alpha=0.2, label='Annualized VaR Risk Band')
+                        plt.fill_between(returns_df.index, lower, upper, color='red', alpha=0.2, label='Annualized VaR Risk Band')
                         plt.xlabel("Time", fontsize=14)
                         plt.ylabel("Cumulative Return (%)", fontsize=14)
                         plt.legend(fontsize=14)
