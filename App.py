@@ -239,7 +239,7 @@ if st.session_state.portfolio:
                     if len(stock_prices) > 1:
                         stock_returns = stock_prices.pct_change().dropna()
                         stock_cum_returns = (1 + stock_returns).cumprod() - 1
-                        plt.plot(stock_cum_returns.index, stock_cum_returns * 100, color=colors[i], label=ticker)
+                        plt.plot(stock_prices.index, stock_cum_returns * 100, color=colors[i], label=ticker)
                 current_values = portfolio_df['Current Value'].values
                 total_current_value = sum(current_values)
                 if total_current_value > 0:
