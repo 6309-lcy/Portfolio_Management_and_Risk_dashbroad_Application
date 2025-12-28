@@ -34,7 +34,4 @@ I am using 10 Year Treasury Yield as the risk-free asset.
 
 ---
 ## Future development
-- Integrate with others models to build up a portfolio management system
-- Deploy this system for 2025 bloomberg trading challenge
-- Deploy this on aws ec2 server and connect with database allowing multi user editing
 - Study and develop further for my research topic in "Event-based Automatic Portfolio Investment Strategies using Multi-modal Large Language Models"
