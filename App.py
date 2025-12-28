@@ -165,9 +165,9 @@ if st.session_state.portfolio:
 if st.session_state.portfolio:
     st.subheader("Your Portfolio Summary: Return and Risk")
     total_invested = sum(st.session_state.portfolio[t]['shares'] * st.session_state.portfolio[t]['buy_price'] for t in tickers)
-    total_current = portfolio_df['Current Value'].sum()
-    port_return = (total_current - total_invested) / total_invested if total_invested > 0 else 0
-    st.markdown(f"**Since-Purchase Return:** {port_return:.2%} (Total Gain/Loss: ${total_current - total_invested:,.2f})")
+    # total_current = portfolio_df['Current Value'].sum()
+    # port_return = (total_current - total_invested) / total_invested if total_invested > 0 else 0
+    # st.markdown(f"**Since-Purchase Return:** {port_return:.2%} (Total Gain/Loss: ${total_current - total_invested:,.2f})")
 
     #risk metrics (using daily data)
     historical_data = fetch_historical_data(tickers, starts, ends, intervals)
@@ -251,37 +251,37 @@ if st.session_state.portfolio:
                 st.warning("No historical return data available.")
         else:
             st.warning("Insufficient historical data for plotting.")
-    if st.checkbox("Show Portfolio Return Since Purchase (Primary View)", value=True):
-        try:
-            earliest_buy = min(info['buy_date'] for info in st.session_state.portfolio.values())
-            port_data_raw = yf.download(tickers, start=earliest_buy, end=ends, interval=intervals)
-            port_data = port_data_raw.xs('Close', level=0, axis=1)[tickers]  # Order as tickers
-            if not port_data.empty and len(port_data) > 1:
-                weights = portfolio_df['Current Value'].values / portfolio_df['Current Value'].sum()
-                port_returns = port_data.pct_change().dropna()
-                if not port_returns.empty:
-                    port_daily_returns = (port_returns * weights).sum(axis=1)
-                    port_cum_returns = (1 + port_daily_returns).cumprod() - 1
-                    if not port_cum_returns.empty:
-                        fig_port = plt.figure(figsize=(15, 7), dpi=100)
-                        plt.plot(port_data.index[:len(port_cum_returns)], port_cum_returns * 100, 'b', label='Portfolio Cumulative Return')
-                        plt.xlabel("Time", fontsize=14)
-                        plt.ylabel("Cumulative Return (%)", fontsize=14)
-                        plt.legend(fontsize=14)
-                        plt.grid(True)
-                        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
-                        plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
-                        plt.tight_layout(pad=2.0)
-                        st.pyplot(fig_port)
-                        plt.close(fig_port)
-                    else:
-                        st.warning("Cumulative returns empty.")
-                else:
-                    st.warning("No return data since purchase.")
-            else:
-                st.warning("Insufficient data since purchase.")
-        except Exception as e:
-            st.error(f"Error: {str(e)}")
+    # if st.checkbox("Show Portfolio Return Since Purchase (Primary View)", value=True):
+    #     try:
+    #         earliest_buy = min(info['buy_date'] for info in st.session_state.portfolio.values())
+    #         port_data_raw = yf.download(tickers, start=earliest_buy, end=ends, interval=intervals)
+    #         port_data = port_data_raw.xs('Close', level=0, axis=1)[tickers]  # Order as tickers
+    #         if not port_data.empty and len(port_data) > 1:
+    #             weights = portfolio_df['Current Value'].values / portfolio_df['Current Value'].sum()
+    #             port_returns = port_data.pct_change().dropna()
+    #             if not port_returns.empty:
+    #                 port_daily_returns = (port_returns * weights).sum(axis=1)
+    #                 port_cum_returns = (1 + port_daily_returns).cumprod() - 1
+    #                 if not port_cum_returns.empty:
+    #                     fig_port = plt.figure(figsize=(15, 7), dpi=100)
+    #                     plt.plot(port_data.index[:len(port_cum_returns)], port_cum_returns * 100, 'b', label='Portfolio Cumulative Return')
+    #                     plt.xlabel("Time", fontsize=14)
+    #                     plt.ylabel("Cumulative Return (%)", fontsize=14)
+    #                     plt.legend(fontsize=14)
+    #                     plt.grid(True)
+    #                     plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+    #                     plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
+    #                     plt.tight_layout(pad=2.0)
+    #                     st.pyplot(fig_port)
+    #                     plt.close(fig_port)
+    #                 else:
+    #                     st.warning("Cumulative returns empty.")
+    #             else:
+    #                 st.warning("No return data since purchase.")
+    #         else:
+    #             st.warning("Insufficient data since purchase.")
+    #     except Exception as e:
+    #         st.error(f"Error: {str(e)}")
 
 # Section 5: Risk Analysis
 if st.session_state.portfolio:
