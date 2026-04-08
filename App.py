@@ -16,7 +16,7 @@ st.set_page_config(layout="wide")
 st.sidebar.markdown(
     """
     <a href="https://6309-lcy.github.io/Personal_Webpage/" target="_blank"
-       style="display:inline-flex;align-items:center;gap:8px;background-color:#1f77b4;
+       style="display:inline-flex;align-items:left;gap:8px;background-color:#1f77b4;
               color:white;padding:10px 18px;border-radius:24px;text-decoration:none;
               font-weight:600;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,0.25);">
         About the Developer
