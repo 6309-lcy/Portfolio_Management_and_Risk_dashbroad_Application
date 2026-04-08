@@ -13,46 +13,14 @@ import datetime
 
 st.set_page_config(layout="wide")
 # Fixed nav bar at the top of the screen
-st.markdown(
+st.sidebar.markdown(
     """
-    <style>
-    .top-nav {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        background-color: #1f77b4;
-        z-index: 9999;
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        padding: 10px 32px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        box-sizing: border-box;
-    }
-    .top-nav a {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        color: white !important;
-        text-decoration: none !important;
-        font-weight: 600;
-        font-size: 14px;
-        transition: opacity 0.2s ease;
-    }
-    .top-nav a:hover {
-        opacity: 0.8;
-    }
-    /* Push page content down so it's not hidden under the nav */
-    section.main > div:first-child {
-        padding-top: 56px;
-    }
-    </style>
-    <div class="top-nav">
-        <a href="https://6309-lcy.github.io/Personal_Webpage/" target="_blank">
-            About the Developer
-        </a>
-    </div>
+    <a href="https://6309-lcy.github.io/Personal_Webpage/" target="_blank"
+       style="display:inline-flex;align-items:center;gap:8px;background-color:#1f77b4;
+              color:white;padding:10px 18px;border-radius:24px;text-decoration:none;
+              font-weight:600;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,0.25);">
+        About the Developer
+    </a>
     """,
     unsafe_allow_html=True,
 )
