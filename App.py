@@ -50,7 +50,7 @@ st.markdown(
     </style>
     <div class="top-nav">
         <a href="https://6309-lcy.github.io/Personal_Webpage/" target="_blank">
-            🌐 About the Developer
+            About the Developer
         </a>
     </div>
     """,
