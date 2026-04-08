@@ -12,38 +12,45 @@ import seaborn as sns
 import datetime 
 
 st.set_page_config(layout="wide")
-# Fixed "About the Developer" button in the bottom-right corner
+# Fixed nav bar at the top of the screen
 st.markdown(
     """
     <style>
-    .developer-badge {
+    .top-nav {
         position: fixed;
-        bottom: 24px;
-        right: 24px;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background-color: #1f77b4;
         z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding: 10px 32px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        box-sizing: border-box;
     }
-    .developer-badge a {
+    .top-nav a {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        background-color: #1f77b4;
         color: white !important;
-        padding: 10px 18px;
-        border-radius: 24px;
         text-decoration: none !important;
         font-weight: 600;
         font-size: 14px;
-        box-shadow: 0 4px 14px rgba(0,0,0,0.25);
-        transition: background-color 0.2s ease, transform 0.2s ease;
+        transition: opacity 0.2s ease;
     }
-    .developer-badge a:hover {
-        background-color: #155a8a;
-        transform: translateY(-2px);
+    .top-nav a:hover {
+        opacity: 0.8;
+    }
+    /* Push page content down so it's not hidden under the nav */
+    section.main > div:first-child {
+        padding-top: 56px;
     }
     </style>
-    <div class="developer-badge">
+    <div class="top-nav">
         <a href="https://6309-lcy.github.io/Personal_Webpage/" target="_blank">
-            About the Developer
+            🌐 About the Developer
         </a>
     </div>
     """,
