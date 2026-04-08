@@ -12,7 +12,7 @@ import seaborn as sns
 import datetime 
 
 st.set_page_config(layout="wide")
-# Fixed nav bar at the top of the screen
+
 st.sidebar.markdown(
     """
     <a href="https://6309-lcy.github.io/Personal_Webpage/" target="_blank"
