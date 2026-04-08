@@ -12,7 +12,43 @@ import seaborn as sns
 import datetime 
 
 st.set_page_config(layout="wide")
-
+# Fixed "About the Developer" button in the bottom-right corner
+st.markdown(
+    """
+    <style>
+    .developer-badge {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 9999;
+    }
+    .developer-badge a {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background-color: #1f77b4;
+        color: white !important;
+        padding: 10px 18px;
+        border-radius: 24px;
+        text-decoration: none !important;
+        font-weight: 600;
+        font-size: 14px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+        transition: background-color 0.2s ease, transform 0.2s ease;
+    }
+    .developer-badge a:hover {
+        background-color: #155a8a;
+        transform: translateY(-2px);
+    }
+    </style>
+    <div class="developer-badge">
+        <a href="https://6309-lcy.github.io/Personal_Webpage/" target="_blank">
+            About the Developer
+        </a>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 # Define global parameters
 intervals = '1d'  # Changed to daily for better predictions/betas (resample to monthly where needed)
 periods_per_year = 252  # Trading days for annualization (more accurate)
