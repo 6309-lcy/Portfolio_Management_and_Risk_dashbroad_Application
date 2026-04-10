@@ -438,7 +438,7 @@ if st.session_state.portfolio:
     market_drop = st.number_input("Hypothetical Market Drop (%)", value=-10.0, step=0.5)
     if 'port_beta' in locals() and not np.isnan(port_beta):
         port_drop = port_beta * (market_drop / 100)
-        st.markdown(f"Estimated Portfolio Loss: {port_drop:.2%} (Based on beta; actual may vary due to idiosyncratic risks). (Plain English: Idiosyncratic risks are stock-specific risks not tied to the market, like company scandals.)")
+        st.markdown(f"Estimated Portfolio Loss: {port_drop:.2%} (Based on beta; actual may vary due to idiosyncratic risks). (Idiosyncratic risks are stock-specific risks not tied to the market, like company scandals.)")
     else:
         st.warning("Cannot compute scenario (beta unavailable).")
 
@@ -480,7 +480,7 @@ if st.session_state.portfolio:
                 valid_weights = np.array([weights[i] for i in valid_indices])
                 valid_weights /= valid_weights.sum() if valid_weights.sum()>0 else 1
                 stress_port_return = np.dot(stress_returns.mean(), valid_weights) * len(stress_returns)  # Total return over period
-                st.markdown(f"Estimated Portfolio Return During {selected_stress}: {stress_port_return:.2%} (Applied current weights to historical returns). (Plain English: This simulates how your portfolio would have performed during past crises using today's allocation.)")
+                st.markdown(f"Estimated Portfolio Return During {selected_stress}: {stress_port_return:.2%} (Applied current weights to historical returns). (This simulates how your portfolio would have performed during past crises using today's allocation.)")
             else:
                 st.warning("Insufficient data for stress test.")
         else:
@@ -501,7 +501,7 @@ if st.session_state.portfolio and st.checkbox("Run Monte Carlo Simulation (Futur
         sim_var = np.percentile(final_returns, 5)
         fig_hist = px.histogram(final_returns, nbins=50, title="Distribution of 1-Year Future Returns (1000 Simulations)")
         st.plotly_chart(fig_hist)
-        st.markdown(f"95% VaR from Simulation (1-Year Loss Potential): {sim_var:.2%} (Probability-based; assumes historical patterns continue). (Plain English: Monte Carlo uses random sampling to model thousands of possible futures, showing the range of outcomes like a 'worst 5% case' loss.)")
+        st.markdown(f"95% VaR from Simulation (1-Year Loss Potential): {sim_var:.2%} (Probability-based; assumes historical patterns continue). (Monte Carlo uses random sampling to model thousands of possible futures, showing the range of outcomes like a 'worst 5% case' loss.)")
     else:
         st.warning("Cannot run simulation (data unavailable).")
 
@@ -795,7 +795,7 @@ if st.session_state.portfolio and len(tickers) >= 2:
                 st.markdown(f"**Annual Volatility (Risk):** {complete_vol:.4%}")
                 complete_sharpe = (complete_ret - annual_rf) / complete_vol if complete_vol > 0 else np.nan
                 st.markdown(f"**Sharpe Ratio:** {complete_sharpe:.2f}" if not np.isnan(complete_sharpe) else "**Sharpe Ratio:** N/A (zero risk)")
-                st.markdown(r"**Note:** Weights may sum to 100% (or not exactly due to rounding). Negative weights indicate short positions (selling borrowed assets to potentially profit from price declines). Leverage occurs if risk-free weight <0 (borrowing at risk-free rate to invest more in risky assets). (Plain English: Short selling is betting on price drops; leverage is using borrowed money to amplify investments.)")
+                st.markdown(r"**Note:** Weights may sum to 100% (or not exactly due to rounding). Negative weights indicate short positions (selling borrowed assets to potentially profit from price declines). Leverage occurs if risk-free weight <0 (borrowing at risk-free rate to invest more in risky assets). (Short selling is betting on price drops; leverage is using borrowed money to amplify investments.)")
                 # Graph: Position on CAL
                 fig_cal = go.Figure()
                 fig_cal.add_trace(go.Scatter(x=[0], y=[annual_rf], mode='markers', name='Risk-Free', marker=dict(color='green', size=10)))
