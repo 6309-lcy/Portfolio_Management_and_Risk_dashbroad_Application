@@ -107,7 +107,7 @@ if search_query:
 tickers = list(st.session_state.portfolio.keys())
 num_assets = len(tickers)
 
-annual_rf = fetch_rf_data(starts, ends, intervals)  # Annualized
+annual_rf = 0.05  # Annualized
 
 # Fetch market data once for betas, SML, etc.
 market_ticker = '^GSPC'
@@ -202,7 +202,7 @@ if st.session_state.portfolio:
                 port_hist_returns = returns_df.dot(weights)
                 port_var_hist = np.percentile(port_hist_returns, 5) * np.sqrt(periods_per_year)  # Approx 
                 port_cvar_hist = port_hist_returns[port_hist_returns <= np.percentile(port_hist_returns, 5)].mean() * np.sqrt(periods_per_year) if len(port_hist_returns) > 0 else np.nan
-                port_sharpe = (port_mean - annual_rf.item()) / port_vol if port_vol > 0 else np.nan
+                port_sharpe = (port_mean - annual_rf) / port_vol if port_vol > 0 else np.nan
 
                 # betas
                 betas = []
@@ -581,9 +581,9 @@ if st.session_state.portfolio and len(tickers) >= 2:
     fig_combined.add_trace(go.Scatter(x=frontier_vols, y=target_rets, mode='lines', name='Efficient Frontier'))
     fig_combined.add_trace(go.Scatter(x=[opt_vol_sharpe], y=[opt_ret_sharpe], mode='markers', name='Max Sharpe (Tangency)'))
     fig_combined.add_trace(go.Scatter(x=[opt_vol_min_risk], y=[opt_ret_min_risk], mode='markers', name='Min Risk'))
-    fig_combined.add_trace(go.Scatter(x=[0], y=[annual_rf.item()], mode='markers', name='Risk-Free Rate', marker=dict(color='green', size=10)))
+    fig_combined.add_trace(go.Scatter(x=[0], y=[annual_rf], mode='markers', name='Risk-Free Rate', marker=dict(color='green', size=10)))
     cal_x = np.linspace(0, opt_vol_sharpe * 1.5, 50)
-    cal_y = annual_rf.item() + cal_x * opt_sharpe_ratio
+    cal_y = annual_rf + cal_x * opt_sharpe_ratio
     fig_combined.add_trace(go.Scatter(x=cal_x, y=cal_y, mode='lines', name='CAL', line=dict(dash='dash')))
 
     # Add individual stocks
@@ -653,11 +653,11 @@ if st.session_state.portfolio and len(tickers) >= 2:
 
     # Sharpe Ratios (annualized)
     if port_vol > 0 and not np.isnan(port_mean):
-        current_sharpe = (port_mean - annual_rf.item()) / port_vol
+        current_sharpe = (port_mean - annual_rf) / port_vol
     else:
         current_sharpe = np.nan
     if market_vol > 0 and not np.isnan(market_mean):
-        market_sharpe = (market_mean - annual_rf.item()) / market_vol
+        market_sharpe = (market_mean - annual_rf) / market_vol
     else:
         market_sharpe = np.nan
     st.markdown(f"**Current Portfolio Sharpe Ratio:** {current_sharpe:.2f}" if not np.isnan(current_sharpe) else "**Current Portfolio Sharpe Ratio:** N/A (Insufficient data)")
@@ -733,23 +733,23 @@ if st.session_state.portfolio and len(tickers) >= 2:
             max_ret, max_vol = np.nan, np.nan
 
         # Compute complete portfolio
-        if np.isnan(opt_ret) or opt_vol == 0 or opt_ret <= annual_rf.item():
+        if np.isnan(opt_ret) or opt_vol == 0 or opt_ret <= annual_rf:
             st.warning("Invalid tangency portfolio (e.g., return <= risk-free or zero vol). Cannot compute complete portfolio.")
         else:
             if input_type == "Expected Return":
-                if target == annual_rf.item():
+                if target == annual_rf:
                     alpha = 0.0
-                    complete_ret = annual_rf.item()
+                    complete_ret = annual_rf
                     complete_vol = 0.0
                     complete_weights = {rf_ticker: 1.0}
                     for t in tickers:
                         complete_weights[t] = 0.0
                 else:
-                    alpha = (target - annual_rf.item()) / (opt_ret - annual_rf.item())
+                    alpha = (target - annual_rf) / (opt_ret - annual_rf)
                     if not allow_short and (alpha < 0 or alpha > 1):
                         st.warning(f"Cannot achieve desired annual return {target:.4%} without short selling or leverage.")
                         if alpha < 0:
-                            st.info(f"Minimum complete portfolio (all in risk-free): Annual Expected Return {annual_rf.item():.4%}, Volatility 0.00% (weights: 100% in {rf_ticker})")
+                            st.info(f"Minimum complete portfolio (all in risk-free): Annual Expected Return {annual_rf:.4%}, Volatility 0.00% (weights: 100% in {rf_ticker})")
                             st.info(f"Optimal minimum risk risky portfolio (not complete): Annual Expected Return {min_ret:.4%}, Volatility {min_vol:.4%} (weights: {dict(zip(tickers, [f'{w:.2%}' for w in min_risk_weights]))})")
                         else:
                             st.info(f"Maximum complete portfolio (all in tangency): Annual Expected Return {opt_ret:.4%}, Volatility {opt_vol:.4%} (weights: {dict(zip(tickers, [f'{w:.2%}' for w in opt_weights]))}, 0% in {rf_ticker})")
@@ -764,7 +764,7 @@ if st.session_state.portfolio and len(tickers) >= 2:
             else:  # Risk Level
                 if target == 0:
                     alpha = 0.0
-                    complete_ret = annual_rf.item()
+                    complete_ret = annual_rf
                     complete_vol = 0.0
                     complete_weights = {rf_ticker: 1.0}
                     for t in tickers:
@@ -780,7 +780,7 @@ if st.session_state.portfolio and len(tickers) >= 2:
                         st.info(f"Minimum complete portfolio (all in risk-free): Volatility 0.00%, Annual Expected Return {annual_rf.item():.4%} (weights: 100% in {rf_ticker})")
                     else:
                         complete_vol = target
-                        complete_ret = annual_rf.item() + alpha * (opt_ret - annual_rf.item())
+                        complete_ret = annual_rf + alpha * (opt_ret - annual_rf)
                         complete_weights = {rf_ticker: 1 - alpha}
                         for i, t in enumerate(tickers):
                             complete_weights[t] = alpha * opt_weights[i]
@@ -793,14 +793,14 @@ if st.session_state.portfolio and len(tickers) >= 2:
                 st.dataframe(complete_df, height=800)  # Wider row height
                 st.markdown(f"**Annual Expected Return:** {complete_ret:.4%}")
                 st.markdown(f"**Annual Volatility (Risk):** {complete_vol:.4%}")
-                complete_sharpe = (complete_ret - annual_rf.item()) / complete_vol if complete_vol > 0 else np.nan
+                complete_sharpe = (complete_ret - annual_rf) / complete_vol if complete_vol > 0 else np.nan
                 st.markdown(f"**Sharpe Ratio:** {complete_sharpe:.2f}" if not np.isnan(complete_sharpe) else "**Sharpe Ratio:** N/A (zero risk)")
                 st.markdown(r"**Note:** Weights may sum to 100% (or not exactly due to rounding). Negative weights indicate short positions (selling borrowed assets to potentially profit from price declines). Leverage occurs if risk-free weight <0 (borrowing at risk-free rate to invest more in risky assets). (Plain English: Short selling is betting on price drops; leverage is using borrowed money to amplify investments.)")
                 # Graph: Position on CAL
                 fig_cal = go.Figure()
-                fig_cal.add_trace(go.Scatter(x=[0], y=[annual_rf.item()], mode='markers', name='Risk-Free', marker=dict(color='green', size=10)))
+                fig_cal.add_trace(go.Scatter(x=[0], y=[annual_rf], mode='markers', name='Risk-Free', marker=dict(color='green', size=10)))
                 cal_x = np.linspace(0, max(complete_vol, opt_vol) * 1.5, 50)
-                cal_y = annual_rf.item() + (opt_ret - annual_rf.item()) / opt_vol * cal_x if opt_vol > 0 else np.full_like(cal_x, annual_rf.item())
+                cal_y = annual_rf + (opt_ret - annual_rf) / opt_vol * cal_x if opt_vol > 0 else np.full_like(cal_x, annual_rf)
                 fig_cal.add_trace(go.Scatter(x=cal_x, y=cal_y, mode='lines', name='Capital Allocation Line (CAL)'))
                 fig_cal.add_trace(go.Scatter(x=[opt_vol], y=[opt_ret], mode='markers', name='Tangency Portfolio'))
                 fig_cal.add_trace(go.Scatter(x=[complete_vol], y=[complete_ret], mode='markers', name='Your Complete Portfolio', marker=dict(color='red', size=12)))
