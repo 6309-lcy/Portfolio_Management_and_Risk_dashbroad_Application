@@ -33,7 +33,7 @@ ends = datetime.date.today()  # End date as current day
 num_assets = 0  # Will be set based on number of stocks in portfolio
 
 # Cache historical data with Close (daily)
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=3600)
 def fetch_historical_data(tickers, starts, ends, intervals):
     if not tickers:
         return pd.DataFrame()
@@ -48,18 +48,18 @@ def fetch_historical_data(tickers, starts, ends, intervals):
     return close[tickers]  # Order as in tickers
 
 # Fetch risk-free rate (try Treasury, fallback BND mean monthly return)
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=3600)
 def fetch_rf_data(starts, ends, intervals):
-    try:
-        rf_data = yf.download(rf_ticker, start=starts, end=ends, interval=intervals)['Close'] / 100  
-        rf_mean = rf_data.mean()  # Annual rf (yield is annual)
-    except:
-        rf_data = yf.download('BND', start=starts, end=ends, interval=intervals)['Close']
-        rf_returns = rf_data.pct_change().dropna()
-        rf_mean = rf_returns.mean() * periods_per_year  # Annualized
-        if isinstance(rf_mean, pd.Series):
-            rf_mean = rf_mean.iloc[0]
-    return rf_mean
+    # try:
+    #     rf_data = yf.download(rf_ticker, start=starts, end=ends, interval=intervals)['Close'] / 100  
+    #     rf_mean = rf_data.mean()  # Annual rf (yield is annual)
+    # except:
+    #     rf_data = yf.download('BND', start=starts, end=ends, interval=intervals)['Close']
+    #     rf_returns = rf_data.pct_change().dropna()
+    #     rf_mean = rf_returns.mean() * periods_per_year  # Annualized
+    #     if isinstance(rf_mean, pd.Series):
+    #         rf_mean = rf_mean.iloc[0]
+    return 0.05
 
 # Session state initialization
 if 'account_balance' not in st.session_state:
