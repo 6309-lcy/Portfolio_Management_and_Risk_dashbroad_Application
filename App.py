@@ -39,29 +39,39 @@ market_ticker    = '^GSPC'
 # how many times Streamlit reruns the script.
 
 @st.cache_data(ttl=3600)
+def fetch_ticker_history(ticker: str, starts: str, ends: str, intervals: str) -> pd.Series:
+    """Download daily Close prices for a SINGLE ticker (cached individually).
+    Starting from 2005 gives buffer before the 2008 stress-test period.
+    Adding a new stock only triggers ONE new download — existing tickers stay cached."""
+    try:
+        raw = yf.download(
+            ticker,
+            start=starts,
+            end=str(ends),
+            interval=intervals,
+            auto_adjust=False,
+            progress=False,
+        )
+        if raw.empty:
+            return pd.Series(dtype=float, name=ticker)
+        close = raw['Close']
+        if isinstance(close, pd.DataFrame):
+            close = close.squeeze()
+        close.name = ticker
+        return close.astype(float)
+    except Exception:
+        return pd.Series(dtype=float, name=ticker)
+
+
 def fetch_historical_data(tickers: tuple, starts: str, ends: str, intervals: str) -> pd.DataFrame:
-    """Download daily Close prices for a tuple of tickers (tuple so it is hashable)."""
+    """Merge per-ticker cached Series into one DataFrame.
+    Each ticker is cached independently — adding a new stock only downloads that one ticker."""
     if not tickers:
         return pd.DataFrame()
-    data = yf.download(
-        list(tickers),
-        start=starts,
-        end=str(ends),
-        interval=intervals,
-        auto_adjust=False,   # suppress FutureWarning; we always use raw Close
-        progress=False,
-    )
-    if data.empty:
-        return pd.DataFrame()
-    if isinstance(data.columns, pd.MultiIndex):
-        close = data['Close']
-    else:
-        close = data.rename(columns={'Close': tickers[0]}) if 'Close' in data.columns else data
-    # Guarantee every requested ticker is present (fill missing with NaN)
-    for t in tickers:
-        if t not in close.columns:
-            close[t] = np.nan
-    return close[list(tickers)]
+    series = [fetch_ticker_history(t, starts, ends, intervals) for t in tickers]
+    df = pd.concat(series, axis=1)
+    df.columns = list(tickers)
+    return df
 
 
 @st.cache_data(ttl=3600)
@@ -85,11 +95,22 @@ def fetch_market_data(starts: str, ends: str, intervals: str) -> pd.Series:
 
 @st.cache_data(ttl=3600)
 def fetch_current_price(ticker: str) -> float:
-    """Fetch a single ticker's current price.  Cached per ticker for 1 hour."""
+    """Fetch a single ticker's most-recent Close price via yf.download (avoids .info rate limits)."""
     try:
-        info = yf.Ticker(ticker).info
-        price = info.get('currentPrice') or info.get('regularMarketPrice')
-        return float(price) if price else float('nan')
+        raw = yf.download(
+            ticker,
+            period='5d',          # last 5 trading days is enough
+            interval='1d',
+            auto_adjust=False,
+            progress=False,
+        )
+        if raw.empty:
+            return float('nan')
+        close = raw['Close']
+        if isinstance(close, pd.DataFrame):
+            close = close.squeeze()
+        last = close.dropna().iloc[-1]
+        return float(last)
     except Exception:
         return float('nan')
 
@@ -122,19 +143,36 @@ if st.button("Update Balance"):
 
 # ── Section 2: Add stocks ─────────────────────────────────────────────────────
 st.header("Search and Add Stocks to Portfolio")
-search_query = st.text_input("Search Stock Ticker (e.g., TSLA, AAPL)")
-if search_query:
+
+# Form so the API call fires ONLY on Enter/Submit, never on every keystroke.
+with st.form("search_form", clear_on_submit=False):
+    search_query = st.text_input("Enter any valid Stock Ticker (e.g., TSLA, AAPL, 9988.HK)")
+    submitted = st.form_submit_button("Search")
+
+if submitted and search_query:
     ticker_upper = search_query.upper().strip()
-    current_price = fetch_current_price(ticker_upper)   # cached
+    st.session_state['searched_ticker'] = ticker_upper
+    st.session_state['searched_price']  = fetch_current_price(ticker_upper)
+
+# Show results — persists across reruns via session state
+if st.session_state.get('searched_ticker'):
+    ticker_upper  = st.session_state['searched_ticker']
+    current_price = st.session_state.get('searched_price', float('nan'))
+
     if not np.isnan(current_price):
-        st.write(f"Current Price for {ticker_upper}: ${current_price:,.2f}")
+        st.write(f"**{ticker_upper}** — Current Price: **${current_price:,.2f}**")
         amount_to_invest = st.number_input(
             f"Amount to Invest in {ticker_upper} (USD)",
-            min_value=0.0, max_value=st.session_state.account_balance)
+            min_value=0.0,
+            max_value=float(st.session_state.account_balance),
+            key="invest_amount",
+        )
         if amount_to_invest > 0:
             max_shares = int(amount_to_invest / current_price)
             st.write(f"Max Shares You Can Buy: {max_shares}")
-            shares_to_buy = st.number_input("Shares to Buy", min_value=0, max_value=max_shares)
+            shares_to_buy = st.number_input(
+                "Shares to Buy", min_value=0, max_value=max_shares, key="shares_input"
+            )
             if st.button(f"Add {ticker_upper} to Portfolio"):
                 if shares_to_buy > 0:
                     cost = shares_to_buy * current_price
@@ -144,12 +182,20 @@ if search_query:
                         'buy_price': current_price,
                         'buy_date':  datetime.datetime.now(),
                     }
+                    st.session_state.pop('searched_ticker', None)
+                    st.session_state.pop('searched_price',  None)
                     st.success(
                         f"Added {shares_to_buy} shares of {ticker_upper} "
                         f"at ${current_price:,.2f}. Cost: ${cost:,.2f}"
                     )
+                    st.rerun()
     else:
-        st.error(f"Could not fetch a price for '{ticker_upper}'. Check the ticker symbol.")
+        st.error(
+            f"Could not fetch a price for '{ticker_upper}'. "
+            "Please check the ticker symbol and try again."
+        )
+        st.session_state.pop('searched_ticker', None)
+        st.session_state.pop('searched_price',  None)
 
 # ── Derived portfolio lists (recalculated each rerun from session state) ───────
 tickers    = list(st.session_state.portfolio.keys())
