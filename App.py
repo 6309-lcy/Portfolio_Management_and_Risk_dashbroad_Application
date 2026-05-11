@@ -93,26 +93,7 @@ def fetch_market_data(starts: str, ends: str, intervals: str) -> pd.Series:
     return close
 
 
-@st.cache_data(ttl=3600)
-def fetch_current_price(ticker: str) -> float:
-    """Fetch a single ticker's most-recent Close price via yf.download (avoids .info rate limits)."""
-    try:
-        raw = yf.download(
-            ticker,
-            period='5d',          # last 5 trading days is enough
-            interval='1d',
-            auto_adjust=False,
-            progress=False,
-        )
-        if raw.empty:
-            return float('nan')
-        close = raw['Close']
-        if isinstance(close, pd.DataFrame):
-            close = close.squeeze()
-        last = close.dropna().iloc[-1]
-        return float(last)
-    except Exception:
-        return float('nan')
+
 
 
 # ── Compute market returns once (derived from cached data) ────────────────────
@@ -144,58 +125,53 @@ if st.button("Update Balance"):
 # ── Section 2: Add stocks ─────────────────────────────────────────────────────
 st.header("Search and Add Stocks to Portfolio")
 
-# Form so the API call fires ONLY on Enter/Submit, never on every keystroke.
 with st.form("search_form", clear_on_submit=False):
     search_query = st.text_input("Enter any valid Stock Ticker (e.g., TSLA, AAPL, 9988.HK)")
     submitted = st.form_submit_button("Search")
 
 if submitted and search_query:
     ticker_upper = search_query.upper().strip()
-    st.session_state['searched_ticker'] = ticker_upper
-    st.session_state['searched_price']  = fetch_current_price(ticker_upper)
+    # One single download call — reused as the historical cache for this ticker too
+    raw = fetch_ticker_history(ticker_upper, starts, str(ends), intervals)
+    if raw.empty or raw.dropna().empty:
+        st.error(f"Could not fetch data for '{ticker_upper}'. Check the ticker symbol.")
+    else:
+        current_price = float(raw.dropna().iloc[-1])
+        st.session_state['searched_ticker'] = ticker_upper
+        st.session_state['searched_price']  = current_price
 
-# Show results — persists across reruns via session state
 if st.session_state.get('searched_ticker'):
     ticker_upper  = st.session_state['searched_ticker']
-    current_price = st.session_state.get('searched_price', float('nan'))
-
-    if not np.isnan(current_price):
-        st.write(f"**{ticker_upper}** — Current Price: **${current_price:,.2f}**")
-        amount_to_invest = st.number_input(
-            f"Amount to Invest in {ticker_upper} (USD)",
-            min_value=0.0,
-            max_value=float(st.session_state.account_balance),
-            key="invest_amount",
+    current_price = st.session_state['searched_price']
+    st.write(f"**{ticker_upper}** — Current Price: **${current_price:,.2f}**")
+    amount_to_invest = st.number_input(
+        f"Amount to Invest in {ticker_upper} (USD)",
+        min_value=0.0,
+        max_value=float(st.session_state.account_balance),
+        key="invest_amount",
+    )
+    if amount_to_invest > 0:
+        max_shares = int(amount_to_invest / current_price)
+        st.write(f"Max Shares You Can Buy: {max_shares}")
+        shares_to_buy = st.number_input(
+            "Shares to Buy", min_value=0, max_value=max_shares, key="shares_input"
         )
-        if amount_to_invest > 0:
-            max_shares = int(amount_to_invest / current_price)
-            st.write(f"Max Shares You Can Buy: {max_shares}")
-            shares_to_buy = st.number_input(
-                "Shares to Buy", min_value=0, max_value=max_shares, key="shares_input"
-            )
-            if st.button(f"Add {ticker_upper} to Portfolio"):
-                if shares_to_buy > 0:
-                    cost = shares_to_buy * current_price
-                    st.session_state.account_balance -= cost
-                    st.session_state.portfolio[ticker_upper] = {
-                        'shares':    shares_to_buy,
-                        'buy_price': current_price,
-                        'buy_date':  datetime.datetime.now(),
-                    }
-                    st.session_state.pop('searched_ticker', None)
-                    st.session_state.pop('searched_price',  None)
-                    st.success(
-                        f"Added {shares_to_buy} shares of {ticker_upper} "
-                        f"at ${current_price:,.2f}. Cost: ${cost:,.2f}"
-                    )
-                    st.rerun()
-    else:
-        st.error(
-            f"Could not fetch a price for '{ticker_upper}'. "
-            "Please check the ticker symbol and try again."
-        )
-        st.session_state.pop('searched_ticker', None)
-        st.session_state.pop('searched_price',  None)
+        if st.button(f"Add {ticker_upper} to Portfolio"):
+            if shares_to_buy > 0:
+                cost = shares_to_buy * current_price
+                st.session_state.account_balance -= cost
+                st.session_state.portfolio[ticker_upper] = {
+                    'shares':    shares_to_buy,
+                    'buy_price': current_price,
+                    'buy_date':  datetime.datetime.now(),
+                }
+                st.session_state.pop('searched_ticker', None)
+                st.session_state.pop('searched_price',  None)
+                st.success(
+                    f"Added {shares_to_buy} shares of {ticker_upper} "
+                    f"at ${current_price:,.2f}. Cost: ${cost:,.2f}"
+                )
+                st.rerun()
 
 # ── Derived portfolio lists (recalculated each rerun from session state) ───────
 tickers    = list(st.session_state.portfolio.keys())
@@ -208,7 +184,7 @@ returns_df      = historical_data.pct_change().dropna() if not historical_data.e
 # ── Section 3: Portfolio display ──────────────────────────────────────────────
 if st.session_state.portfolio:
     # Current prices — one cached call per ticker
-    current_prices_map = {t: fetch_current_price(t) for t in tickers}
+    current_prices_map = {t: float(historical_data[t].dropna().iloc[-1]) if t in historical_data.columns and not historical_data[t].dropna().empty else float('nan') for t in tickers}
 
     portfolio_df = pd.DataFrame.from_dict(st.session_state.portfolio, orient='index')
     portfolio_df['Current Price'] = [current_prices_map[t] for t in tickers]
@@ -257,7 +233,7 @@ if st.session_state.portfolio:
     st.header("Sell Shares from Portfolio")
     sell_ticker = st.selectbox("Select Stock to Sell", options=tickers)
     if sell_ticker:
-        sell_price    = fetch_current_price(sell_ticker)
+        sell_price    = float(historical_data[sell_ticker].dropna().iloc[-1]) if sell_ticker in historical_data.columns and not historical_data[sell_ticker].dropna().empty else float('nan')
         owned_shares  = st.session_state.portfolio[sell_ticker]['shares']
         st.write(f"You own {owned_shares} shares of {sell_ticker}. "
                  f"Current Price: ${sell_price:,.2f}")
